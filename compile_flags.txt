@@ -1,0 +1,13 @@
+-Wall
+-Wextra
+-Werror
+-std=c11
+-Wpedantic
+-Wvla
+-Wcast-align=strict
+-Wshadow
+-Wno-error=unused-variable
+-Wconversion
+-Wunreachable-code
+-Wformat=2
+-Wno-conversion
