@@ -53,7 +53,7 @@ void allocator_deinit(Allocator *allocator)
 }
 
 //
-// GPA
+// General Purpose Allocator
 //
 
 void gen_init(GenAlloc *ga, size_t size)
@@ -118,6 +118,10 @@ void *gen_realloc(void *ptr, size_t size, void *ctx)
 
 void gen_free_all(Allocator *allocator)
 {
+	if (allocator->type != GENERAL_PURPOSE_ALLOCATOR) {
+		printf("[ALLOCATOR] Mismatched allocator - failed to release memory\n"); // TODO: print the incorrectly used allocator
+		return;
+	}
 	GenAlloc *alloc = NULL;
 	if (allocator->ctx) {
 		alloc = (GenAlloc *)allocator->ctx;
@@ -218,14 +222,12 @@ void arena_free_all(Arena *a)
 
 void* arena_alloc(size_t size, void *ctx)
 {
-	Arena *arena = (Arena *)ctx;
-	return arena_alloc_align(arena, size, DEFAULT_ALIGNMENT);
+	return arena_alloc_align((Arena *)ctx, size, DEFAULT_ALIGNMENT);
 }
 
 void* arena_resize(void *old_memory, size_t old_size, size_t new_size, void *ctx)
 {
-	Arena *arena = (Arena *)ctx;
-	return arena_resize_align(arena, old_memory, old_size, new_size, DEFAULT_ALIGNMENT);
+	return arena_resize_align((Arena *)ctx, old_memory, old_size, new_size, DEFAULT_ALIGNMENT);
 }
 
 void arena_free(void *ptr, void* ctx)

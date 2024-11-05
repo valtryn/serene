@@ -1,3 +1,8 @@
+// TODO: 
+//	- page allocator
+//	- tracking allocator
+//	- better error handling
+//	- rename library to mem
 // Resources:
 //		- https://zig.guide/standard-library/allocators
 //		- https://www.gingerbill.org/series/memory-allocation-strategies/
@@ -13,6 +18,7 @@
 #define DEFAULT_ALIGNMENT (2*sizeof(void *))
 #endif
 
+#define bytes(size)     ((size_t)(size) * (1))
 #define kilobytes(size) ((size_t)(size) * (1 << 10))
 #define megabytes(size) ((size_t)(size) * (1 << 20))
 #define gigabytes(size) ((size_t)(size) * (1 << 30))
@@ -68,9 +74,6 @@ void  gen_free_all(Allocator *allocator);
 void *gen_realloc(void *ptr, size_t size, void *ctx);
 // utility functions
 uintptr_t align_forward(uintptr_t ptr, size_t align);
-// TODO: 
-//	- page allocator
-//	- better error handling
 
 
 

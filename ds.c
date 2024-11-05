@@ -56,9 +56,9 @@ void* array_grow_gpa(void *array, size_t size)
 void* array_grow(void *array, size_t size)
 {
 	ArrayHeader *hdr = ARRAY_HEADER(array);
-	if (hdr->allocator->type == GPA)
+	if (hdr->allocator->type == GENERAL_PURPOSE_ALLOCATOR)
 		return array_grow_gpa(array, size);
-	if (hdr->allocator->type == ARENA) {
+	if (hdr->allocator->type == ARENA_ALLOCATOR) {
 		size_t old_size = hdr->cap;
 		size_t new_size = hdr->cap + size;
 		void *new_ptr = arena_resize(ARRAY_BASE(array), old_size, new_size + sizeof(ArrayHeader), hdr->allocator->ctx);
@@ -129,7 +129,7 @@ void array_free(void *arr)
 	if (!arr)
 		return;
 	ArrayHeader *hdr = ARRAY_HEADER(arr);
-	if (hdr->allocator->type== GPA)
+	if (hdr->allocator->type== GENERAL_PURPOSE_ALLOCATOR)
 		hdr->allocator->free(hdr, hdr->allocator->ctx);
 	else
 		printf("WARNING: Attempting to use 'array_free' on a non-GPA allocated array\n");
@@ -144,20 +144,4 @@ void dbg_metadata(void *arr)
 	printf("cap: %zu\n", hdr->cap);
 	printf("item_size: %zu\n", hdr->item_size);
 	printf("+-------------------------+\n\n");
-}
-
-#include "str.h"
-
-int main(void)
-{
-	Arena arena = {0};
-	size_t size = megabytes(100);
-	void *buf = malloc(size);
-	arena_init(&arena, buf, size);
-	Allocator allocator = allocator_init(GPA, NULL);
-	String *arr = allocator.alloc(sizeof(String) * 1, allocator.ctx);
-	for (size_t i = 0; i < 100; i++) arr[i] = str_make("Hello", &allocator);
-	/*arr[0] = str_make("Hello", &allocator);*/
-	dbg_metadata(arr);
-	allocator.free(ARRAY_BASE(arr), allocator.ctx);
 }

@@ -10,9 +10,10 @@ typedef char* string;
 #define STRING_BASE(str) (STRING_HEADER((str)))
 
 typedef struct StringHeader StringHeader;
+// TODO: implement slice
 struct StringHeader {
 	Allocator *alloc;
-	size_t len;
+	size_t     len;
 	// size_t cap; NOTE: maybe add a cap?
 };
 
@@ -20,23 +21,41 @@ typedef struct StringArray StringArray;
 struct StringArray {
 	Allocator *allocator;
 	uintptr_t *nodes;
-	size_t len;
-	size_t cap;
+	size_t     len;
+	size_t     cap;
 };
 
+typedef struct StringBuilder StringBuilder;
+struct StringBuilder {
+	Allocator *allocator;
+	char      *buffer;
+	size_t     len;
+	size_t     cap;
+};
 
-string str_make(const char *cstr, Allocator *alloc);
-string str_clone_from_buf(const void *src, size_t length, Allocator *alloc);
-string str_merge(const string lhs, const string rhs, Allocator *alloc);
-string str_clone(const string str, Allocator *alloc);
-string str_join(const StringArray *array, const string separator);
+string str_make(const char *cstr,  Allocator *allocator);
+string str_clone(const string str, Allocator *allocator);
+string str_clone_from_buf(const void *src, size_t length, Allocator *allocator);
+string str_merge(const string lhs, const string rhs, Allocator *allocator);
+string str_join(const StringArray *array, const string separator, Allocator *allocator);
+string str_concatenate(const StringArray *array, Allocator *allocator);
+int    str_index(const string str, const string substr);
+int    str_index_byte(const string str, const char byte);
 void   str_free(string str);
 size_t str_len(string str);
 
 //
 // String Array
 //
-void str_array_init(StringArray *array, size_t cap, Allocator *allocator);
-void str_array_append(string str, StringArray *arr);
-
+void   str_array_init(StringArray *array, size_t cap, Allocator *allocator);
+void   str_array_append(StringArray *arr, string str);
+string str_array_at(const StringArray *array, size_t index);
+//
+// String Builder
+//
+void   str_builder_init(StringBuilder *builder, size_t initial_capacity, Allocator *allocator);
+void   str_builder_reset(StringBuilder *builder);
+void   str_builder_resize(StringBuilder *builder, size_t new_size);
+string str_builder_to_string(StringBuilder *builder, Allocator *allocator);
+void   str_write_string(StringBuilder *builder, string src); // TODO: maybe change str_builder prefix
 #endif /* STR_H */
