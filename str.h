@@ -5,7 +5,6 @@
 
 #define STR_H
 
-typedef char* string;
 #define STRING_HEADER(str) ((StringHeader *)(uintptr_t)(str) - 1)
 #define STRING_BASE(str) (STRING_HEADER((str)))
 
@@ -16,6 +15,7 @@ struct StringHeader {
 	size_t     len;
 	// size_t cap; NOTE: maybe add a cap?
 };
+typedef char* string;
 
 typedef struct StringArray StringArray;
 struct StringArray {
@@ -43,7 +43,9 @@ int    str_index(const string str, const string substr);
 int    str_index_byte(const string str, const char byte);
 void   str_free(string str);
 size_t str_len(string str);
-
+size_t str_count(string str);
+StringArray* str_split(const string str, const string separator, Allocator *allocator) ;
+int str_indices(const string str, const string substr, size_t *indices);
 //
 // String Array
 //
@@ -58,4 +60,5 @@ void   str_builder_reset(StringBuilder *builder);
 void   str_builder_resize(StringBuilder *builder, size_t new_size);
 string str_builder_to_string(StringBuilder *builder, Allocator *allocator);
 void   str_write_string(StringBuilder *builder, string src); // TODO: maybe change str_builder prefix
+void   str_write_byte(StringBuilder *builder, char c);
 #endif /* STR_H */

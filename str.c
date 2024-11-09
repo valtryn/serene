@@ -24,14 +24,6 @@ string str_init(size_t len, Allocator *allocator)
 	return str;
 }
 
-void str_set_header(string str, size_t len, Allocator *allocator)
-{
-	StringHeader *hdr = STRING_HEADER(str);
-	hdr->alloc = allocator;
-	hdr->len   = len;
-	// hdr->cap   = cap; TODO: uncomment when capacity is supported
-}
-
 string str_clone_from_buf(const void *src, size_t len, Allocator *allocator)
 {
 	if (!src)
@@ -104,7 +96,6 @@ int str_index(const string str, const string substr)
 			if (memcmp(str + i, substr, str_len(substr)) == 0)
 				return i;
 		}
-
 	}
 	return -1;
 }
@@ -135,6 +126,10 @@ size_t str_len(const string str)
 {
 	return STRING_HEADER(str)->len;
 }
+
+//
+// String Array
+//
 
 void str_array_init(StringArray *array, size_t cap, Allocator *allocator)
 {
@@ -177,11 +172,12 @@ void str_builder_init(StringBuilder *builder, size_t initial_capacity, Allocator
 {
 	builder->allocator = allocator;
 	builder->buffer    = allocator->alloc(initial_capacity, allocator->ctx);
-	builder->len       = 0;
+	builder->len       = 1;
 	builder->cap       = initial_capacity <= 0 ? 1 : initial_capacity;
 	return;
 }
 
+// TODO: create a writer for cstring
 void str_write_string(StringBuilder *builder, string src)
 {
 	if (!src) return;
@@ -192,6 +188,17 @@ void str_write_string(StringBuilder *builder, string src)
 	memcpy(builder->buffer + builder->len, src, str_len(src));
 	builder->len += str_len(src);
 }
+
+void str_write_byte(StringBuilder *builder, char c)
+{
+	if (builder->len + 1 > builder->cap) {
+		size_t new_cap = (builder->cap * 2) + 1;
+		str_builder_resize(builder, new_cap);
+	}
+	builder->buffer[builder->len] = c;
+	builder->len++;
+}
+
 
 void str_builder_reset(StringBuilder *builder)
 {
@@ -204,12 +211,13 @@ void str_builder_resize(StringBuilder *builder, size_t new_size)
 		// TODO: implement realloc function pointer for arena
 		if (builder->allocator->type == GENERAL_PURPOSE_ALLOCATOR)
 			builder->buffer = builder->allocator->realloc(builder->buffer, new_size, builder->allocator->ctx); // TODO: handle realloc failure
-		if (builder->allocator->type == ARENA_ALLOCATOR)
+		else if (builder->allocator->type == ARENA_ALLOCATOR)
 			builder->buffer = arena_resize(builder->buffer, builder->cap, new_size, builder->allocator->ctx);
 		builder->cap = new_size;
-	} else 
+	}
+	
+	if (new_size <= builder->len)
 		builder->len = new_size;
-
 }
 
 // TODO: not sure if we should request a new allocator or use the existing builder allocator
@@ -217,6 +225,7 @@ string str_builder_to_string(StringBuilder *builder, Allocator *allocator)
 {
 	string ret = str_init(builder->len, allocator);
 	memcpy(ret, builder->buffer, builder->len);
-	str_set_header(ret, builder->len, allocator);
+	STRING_HEADER(ret)->len   = builder->len;
+	STRING_HEADER(ret)->alloc = allocator;
 	return ret;
 }
