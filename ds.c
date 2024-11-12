@@ -18,10 +18,7 @@ void array_resize(Array *array, size_t new_size)
 		array->length = new_size;
 
 	if (new_size > array->capacity) {
-		if (array->allocator->type == GENERAL_PURPOSE_ALLOCATOR)
-			array->buffer = array->allocator->realloc(array->buffer, new_size * array->element_size, array->allocator->ctx); // TODO: handle realloc failure
-		else if (array->allocator->type == ARENA_ALLOCATOR)
-			array->buffer = arena_resize(array->buffer, array->capacity, new_size * array->element_size, array->allocator->ctx);
+		array->buffer = array->allocator->realloc(array->buffer, array->capacity, new_size * array->element_size, array->allocator->ctx);
 		array->capacity = new_size;
 	}
 }

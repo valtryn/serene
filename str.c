@@ -5,6 +5,7 @@
 
 #include "str.h"
 #include "allocator.h"
+#include "ds.h"
 
 string str_init(size_t len, Allocator *allocator)
 {
@@ -110,6 +111,62 @@ int str_index_byte(const string str, const char byte)
 	return -1;
 }
 
+size_t str_indices(const string str, const string substr, Array *array)
+{
+	size_t count = 0;
+	if (str_len(str) < str_len(substr))
+		return count;
+	for (size_t i = 0; i <= str_len(str) - str_len(substr); i++) {
+		if (str[i] == substr[0]) {
+			if (memcmp(str + i, substr, str_len(substr)) == 0) {
+				count++;
+				array_append(array, &i);
+				i += str_len(substr) - 1;
+			}
+		}
+	}
+	return count;
+}
+
+StringArray str_split(const string str, const string separator, Allocator *allocator)
+{
+	StringArray str_arr = {0};
+	Array arr = {0};
+
+	// special case where the separator is ""
+	if (str_len(separator) == 0) {
+		str_array_init(&str_arr, str_len(str) + 1, allocator);
+		for (size_t i = 0; i < str_len(str); i++) {
+			string slice = str_clone_from_buf(str + i, 1, allocator);
+			str_array_append_move(&str_arr, slice);
+		}
+		return str_arr;
+	}
+
+	array_init(&arr, 10, sizeof(size_t), allocator);
+	size_t count = str_indices(str, separator, &arr);
+	if (count == 0) {
+		str_array_init(&str_arr, 1, allocator);
+		str_array_append(&str_arr, str);
+	} else {
+		str_array_init(&str_arr, count, allocator);
+		size_t prev = 0;
+		for (size_t i = 0; i < arr.length; i++) {
+			size_t idx = *(size_t*)array_at(&arr, i);
+			string slice = str_clone_from_buf(str + prev, idx - prev, allocator);
+			str_array_append_move(&str_arr, slice);
+			prev = idx + str_len(separator);
+		}
+		size_t idx = *(size_t*)array_at(&arr, arr.length - 1);
+		if (str_len(str) - idx + str_len(separator)  > 0) {
+			string slice = str_clone_from_buf(str + idx + str_len(separator), str_len(str) - (idx + str_len(separator)), allocator);
+			str_array_append_move(&str_arr, slice);
+		}
+	}
+	allocator->free(arr.buffer, allocator->ctx);
+	return str_arr;
+}
+
 void str_free(string str)
 {
 	if (!str)
@@ -148,18 +205,21 @@ void str_array_append(StringArray *arr, string str)
 {
 	if (arr->len >= arr->cap) {
 		size_t new_size = arr->cap * 2;
-		if (arr->allocator->type == ARENA_ALLOCATOR) {
-			arr->nodes = arena_resize(arr->nodes, arr->cap * sizeof(uintptr_t), new_size * sizeof(uintptr_t), arr->allocator->ctx);
-			if (arr->nodes == NULL) {
-				printf("ERROR: failed to append string: arena out of memory\n"); // TODO: create a proper error handling 
-				return;
-			}
-		}
-		if (arr->allocator->type == GENERAL_PURPOSE_ALLOCATOR)
-			arr->nodes = arr->allocator->realloc(arr->nodes, new_size * sizeof(uintptr_t), arr->allocator->ctx); // TODO: handle realloc failure
+		arr->nodes = arr->allocator->realloc(arr->nodes, arr->cap * sizeof(uintptr_t), new_size * sizeof(uintptr_t), arr->allocator->ctx);
 		arr->cap = new_size;
 	}
 	arr->nodes[arr->len] = (uintptr_t)str_clone(str, arr->allocator);
+	arr->len++;
+}
+
+void str_array_append_move(StringArray *arr, string str)
+{
+	if (arr->len >= arr->cap) {
+		size_t new_size = arr->cap * 2;
+		arr->nodes = arr->allocator->realloc(arr->nodes, arr->cap * sizeof(uintptr_t), new_size * sizeof(uintptr_t), arr->allocator->ctx);
+		arr->cap = new_size;
+	}
+	arr->nodes[arr->len] = (uintptr_t)str;
 	arr->len++;
 }
 
@@ -172,7 +232,7 @@ void str_builder_init(StringBuilder *builder, size_t initial_capacity, Allocator
 {
 	builder->allocator = allocator;
 	builder->buffer    = allocator->alloc(initial_capacity, allocator->ctx);
-	builder->len       = 1;
+	builder->len       = 0;
 	builder->cap       = initial_capacity <= 0 ? 1 : initial_capacity;
 	return;
 }
@@ -209,10 +269,7 @@ void str_builder_resize(StringBuilder *builder, size_t new_size)
 {
 	if (new_size > builder->cap) {
 		// TODO: implement realloc function pointer for arena
-		if (builder->allocator->type == GENERAL_PURPOSE_ALLOCATOR)
-			builder->buffer = builder->allocator->realloc(builder->buffer, new_size, builder->allocator->ctx); // TODO: handle realloc failure
-		else if (builder->allocator->type == ARENA_ALLOCATOR)
-			builder->buffer = arena_resize(builder->buffer, builder->cap, new_size, builder->allocator->ctx);
+			builder->buffer = builder->allocator->realloc(builder->buffer, builder->cap, new_size, builder->allocator->ctx);
 		builder->cap = new_size;
 	}
 	

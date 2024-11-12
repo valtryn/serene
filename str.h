@@ -43,14 +43,13 @@ int    str_index(const string str, const string substr);
 int    str_index_byte(const string str, const char byte);
 void   str_free(string str);
 size_t str_len(string str);
-size_t str_count(string str);
-StringArray* str_split(const string str, const string separator, Allocator *allocator) ;
-int str_indices(const string str, const string substr, size_t *indices);
+StringArray str_split(const string str, const string separator, Allocator *allocator) ;
 //
 // String Array
 //
 void   str_array_init(StringArray *array, size_t cap, Allocator *allocator);
 void   str_array_append(StringArray *arr, string str);
+void str_array_append_move(StringArray *arr, string str);
 string str_array_at(const StringArray *array, size_t index);
 //
 // String Builder

@@ -32,7 +32,7 @@ typedef struct Allocator Allocator;
 struct Allocator {
 	void *(*alloc)(size_t size, void *ctx);
 	void (*free)(void *ptr, void *ctx);
-	void *(*realloc)(void *ptr, size_t size, void *ctx);
+	void *(*realloc)(void *ptr, size_t old_size, size_t size, void *ctx);
 	void *ctx;
 	enum AllocatorType type;
 };
@@ -71,7 +71,7 @@ void  gen_deinit(GenAlloc *ga);
 void *gen_alloc(size_t size, void *ctx);
 void  gen_free(void *ptr, void *ctx);
 void  gen_free_all(Allocator *allocator);
-void *gen_realloc(void *ptr, size_t size, void *ctx);
+void *gen_realloc(void *ptr, size_t old_size, size_t size, void *ctx);
 // utility functions
 uintptr_t align_forward(uintptr_t ptr, size_t align);
 

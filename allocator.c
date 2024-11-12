@@ -15,7 +15,7 @@ void allocator_init(Allocator *allocator, enum AllocatorType type, size_t initia
 				    arena_init(arena, buf, initial_size);
 				    allocator->alloc   = arena_alloc;
 				    allocator->free    = arena_free;
-				    allocator->realloc = NULL; // TODO: support realloc
+				    allocator->realloc = arena_resize; // TODO: support realloc
 				    allocator->ctx     = arena;
 				    allocator->type    = type;
 				    break;
@@ -102,8 +102,9 @@ void gen_free(void *ptr, void *ctx)
 	return;
 }
 
-void *gen_realloc(void *ptr, size_t size, void *ctx)
+void *gen_realloc(void *ptr, size_t old_size, size_t size, void *ctx)
 {
+	(void)old_size;
 	uintptr_t old_ptr = (uintptr_t)ptr;
 	void *new_ptr = realloc(ptr, size);
 	GenAlloc *alloc = (GenAlloc *)ctx;
@@ -213,13 +214,6 @@ void* arena_resize_align(Arena *arena, void *old_memory, size_t old_size, size_t
 	}
 }
 
-void arena_free_all(Arena *a)
-{
-	a->curr_offset = 0;
-	a->prev_offset = 0;
-
-}
-
 void* arena_alloc(size_t size, void *ctx)
 {
 	return arena_alloc_align((Arena *)ctx, size, DEFAULT_ALIGNMENT);
@@ -230,7 +224,7 @@ void* arena_resize(void *old_memory, size_t old_size, size_t new_size, void *ctx
 	return arena_resize_align((Arena *)ctx, old_memory, old_size, new_size, DEFAULT_ALIGNMENT);
 }
 
-void arena_free(void *ptr, void* ctx)
+void arena_free_all(void *ptr, void* ctx)
 {
 	(void)ptr;
 	Arena *arena = (Arena *)ctx;
@@ -238,6 +232,13 @@ void arena_free(void *ptr, void* ctx)
 	arena->curr_offset = 0;
 	arena->prev_offset = 0;
 }
+
+void arena_free(void *ptr, void* ctx)
+{
+	(void)ptr;
+	(void)ctx;
+}
+
 
 void arena_init(Arena *arena, void *buffer, size_t size)
 {
