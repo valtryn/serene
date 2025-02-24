@@ -1,7 +1,6 @@
 -Wall
 -Wextra
 -Werror
--Werror=maybe-uninitialized
 -std=c11
 -Wpedantic
 -Wvla
@@ -10,5 +9,4 @@
 -Wconversion
 -Wunreachable-code
 -Wformat=2
--Wno-incompatible-pointer-types
-
+-Wstrict-prototypes
