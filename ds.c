@@ -32,6 +32,12 @@ void array_append(Array *array, void *element)
 	array->length++;
 }
 
+void array_remove_unordered(Array *array, size_t index)
+{
+	// TODO: implement
+	return;
+}
+
 void* array_at(Array *array, size_t index)
 {
 	return (unsigned char*)array->buffer + (index * array->element_size);
