@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+#include <pthread.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -7,33 +9,29 @@
 #include <assert.h>
 
 #include "allocator.h"
-
 void allocator_deinit(Allocator *allocator)
 {
 	switch (allocator->type) {
 		case GENERAL_PURPOSE_ALLOCATOR:
-					free(allocator->ctx);
-					free(allocator);
-			break;
+					break;
 		case ARENA_ALLOCATOR: {
-					      Arena *alloc = (Arena*)allocator->ctx;
-					      free(alloc->buffer);
-					      free(alloc->relative_offsets);
-					      free(alloc);
-					      break;
-				      }
+					Arena *alloc = (Arena*)allocator->ctx;
+					free(alloc->buffer);
+					free(alloc->relative_offsets);
+					free(alloc);
+					break;
+		}
 		case TRACKING_ALLOCATOR: {
-						 TrackingAllocator *alloc = (TrackingAllocator*)allocator->ctx;
-						 // NOTE: here we free all the tracked allocations
-						 for (size_t i = 0; i < alloc->len; i++) {
-							 if (alloc->offsets[i] != 0) {
-								 free((void*)alloc->offsets[i]);
-							 }
-						 }
-						 free(alloc->offsets);
-						 free(alloc);
-						 break;
-					 }
+					TrackingAllocator *alloc = (TrackingAllocator*)allocator->ctx;
+					// NOTE: here we free all the tracked allocations
+					for (size_t i = 0; i < alloc->len; i++) {
+					        if (alloc->offsets[i] != 0)
+					       	 free((void*)alloc->offsets[i]);
+					}
+					free(alloc->offsets);
+					free(alloc);
+					break;
+		}
 	}
 }
 
@@ -252,6 +250,11 @@ int arena_allocator_init(Allocator *allocator, size_t size)
 	arena->curr_offset = 0;
 	arena->prev_offset = 0;
 
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&arena->mutex, &attr);
+
 	allocator->ctx     = arena;
 	allocator->type    = ARENA_ALLOCATOR;
 	allocator->alloc   = arena_alloc;
@@ -267,6 +270,7 @@ void *arena_alloc(size_t size, void *ctx)
 	if (!ctx) goto out;
 
 	Arena *arena = (Arena*)ctx;
+	pthread_mutex_lock(&arena->mutex);
 	uintptr_t curr_ptr = (uintptr_t)arena->buffer + (uintptr_t)arena->curr_offset;
 	uintptr_t offset   = align_forward(curr_ptr, DEFAULT_ALIGNMENT);
 	offset -= (uintptr_t)arena->buffer;
@@ -288,6 +292,7 @@ void *arena_alloc(size_t size, void *ctx)
 	} else {
 		printf("Memory is out of bounds or out of memory.\n");
 	}
+	pthread_mutex_unlock(&arena->mutex);
 out:
 	return ret;
 }
@@ -304,11 +309,12 @@ void *arena_realloc(void *ptr, size_t size, void *ctx)
 	}
 
 	Arena *arena = (Arena*)ctx;
-
+	pthread_mutex_lock(&arena->mutex);
 	uintptr_t old_mem = (uintptr_t)ptr;
 	uintptr_t buf = (uintptr_t)arena->buffer;
 	size_t old_size = arena_get_block_size(old_mem, arena);
 	if (old_mem < buf || old_mem >= buf + arena->cap) {
+		pthread_mutex_unlock(&arena->mutex);
 		goto out;
 	}
 	// optimization
@@ -317,14 +323,19 @@ void *arena_realloc(void *ptr, size_t size, void *ctx)
 		if (size > old_size)
 			memset(&arena->buffer[arena->curr_offset], 0, size - old_size);
 		ret = ptr;
+		pthread_mutex_unlock(&arena->mutex);
 		goto out;
 	}
 
 	void *new_mem = arena_alloc(size, arena);
-	if (!new_mem) goto out;
+	if (!new_mem) {
+		pthread_mutex_unlock(&arena->mutex);
+		goto out;
+	}
 	size_t copy_size = old_size < size ? old_size : size;
 	memmove(new_mem, ptr, copy_size);
 	ret = new_mem;
+	pthread_mutex_unlock(&arena->mutex);
 out:
 	return ret;
 }

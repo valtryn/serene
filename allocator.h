@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <pthread.h>
 
 #ifndef DEFAULT_ALIGNMENT
 #define DEFAULT_ALIGNMENT (2*sizeof(void *))
@@ -66,6 +67,9 @@ struct Arena {
         uintptr_t *relative_offsets;
         size_t    offset_cap;
         size_t    offset_len;
+
+        // multithread support
+        pthread_mutex_t mutex;
 };
 
 int arena_allocator_init(Allocator *allocator, size_t size);
@@ -74,5 +78,13 @@ void arena_free(void *ptr, void *ctx);
 void *arena_realloc(void *ptr, size_t size, void *ctx);
 size_t arena_get_block_size(uintptr_t ptr, Arena *arena);
 uintptr_t arena_abs_offset(Arena *arena, uintptr_t relative_offset);
+
+// 
+// TODO: BRIDGE ALLOC
+//
+void *bridge_alloc(size_t size);
+void *bridge_calloc(size_t element_size, size_t size);
+void *bridge_realloc(void *ptr, size_t size);
+void *bridge_free(size_t size);
 
 #endif /* _ALLOCATOR_H */
