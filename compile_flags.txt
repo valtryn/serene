@@ -1,9 +1,4 @@
--Wno-error=cast-align
--Wno-unused-parameter
--Wno-unused-variable
--Wno-unused-but-set-variable
--Wno-sign-conversion
-
+-Wall
 -Wextra
 -Werror,
 -std=c11
@@ -14,3 +9,14 @@
 -Wunreachable-code
 -Wformat=2
 -Wstrict-prototypes
+
+-Wno-error=cast-align
+-Wno-unused-parameter
+-Wno-unused-variable
+-Wno-unused-but-set-variable
+-Wno-sign-conversion
+
+-I.
+-I./core
+-I./ui
+-I./test

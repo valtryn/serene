@@ -1,9 +1,10 @@
-#ifndef _GUI_C
-#define _GUI_C
+#ifndef _GFX_H
+#define _GFX_H
 
 #include <stddef.h>
+#include <ds.h>
 
-#include "allocator.h"
+#include "ui.h"
 
 typedef struct Color Color; // R8G8B8A8 (32bit)
 typedef struct Vector2 Vector2;
@@ -12,20 +13,21 @@ typedef struct Rectangle Rectangle;
 
 typedef struct Canvas Canvas;
 struct Canvas {
-	int      width;
-	int      height;
-	size_t   pitch;
-        uint32_t *buffer;
+	int        width;
+	int        height;
+	size_t     pitch;
+        uint32_t  *buffer;
 };
 
 // DRAW BASIC SHAPES
-int gui_canvas_init(Canvas *canvas, int width, int height, Allocator *alloc);
-void gui_draw_pixel(Canvas *canvas, int x, int y, Color color);
-void gui_draw_rectangle(Canvas *canvas, int x, int y, int width, int height, Color color);
-void gui_draw_rectangle_outline(Canvas *canvas, int x, int y, int width, int height, Color color);
-void gui_draw_line(Canvas *canvas, int sx, int sy, int ex, int ey, Color border_color);
-void gui_reset(Canvas *canvas);
-void gui_draw_circle(Canvas *canvas, int cx, int cy, int radius, Color color);
+void gfx_canvas_init(Canvas *canvas, SRN_Surface *surface);
+void gfx_draw_pixel(Canvas *canvas, int x, int y, Color color);
+void gfx_draw_rectangle(Canvas *canvas, int x, int y, int width, int height, Color color);
+void gfx_draw_rectangle_outline(Canvas *canvas, int x, int y, int width, int height, Color color);
+void gfx_draw_line(Canvas *canvas, int sx, int sy, int ex, int ey, Color border_color);
+void gfx_clear(Canvas *canvas);
+void gfx_draw_circle(Canvas *canvas, int cx, int cy, int radius, Color color);
+void gfx_draw_circle_outline(Canvas *canvas, int cx, int cy, int radius, Color color);
 
 struct Color {
 	unsigned char r;
@@ -51,6 +53,10 @@ struct Rectangle {
         float width;
         float height;
 };
+
+// Utils
+Vector2 Vec2(float x, float y);
+Vector3 Vec3(float x, float y, float z);
 
 // NOTE: use catppuccin colorscheme for now
 #define SERENE_ROSEWATER (Color){245, 224, 220, 255} /* #f5e0dc */
@@ -81,4 +87,4 @@ struct Rectangle {
 #define SERENE_CRUST 	 (Color){17,  17,  27,  255} /* #11111b */
 
 
-#endif /* _GUI_C */
+#endif /* _GFX_H */

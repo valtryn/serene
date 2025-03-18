@@ -229,20 +229,20 @@ int arena_allocator_init(Allocator *allocator, size_t size)
 	Arena *arena = malloc(sizeof(Arena));
 	if (!arena) {
 		ret = -1;
-		goto out;
+		goto OUT;
 	};
 	arena->buffer  = malloc(size);
 	if (!arena->buffer) {
 		ret = -1;
 		free(arena);
-		goto out;
+		goto OUT;
 	};
 	arena->relative_offsets= malloc(sizeof(uintptr_t) * DEFAULT_ALLOC_SIZE);
 	if (!arena->relative_offsets) {
 		ret = -1;
 		free(arena->buffer);
 		free(arena);
-		goto out;
+		goto OUT;
 	};
 	arena->cap = size;
 	arena->offset_cap = DEFAULT_ALLOC_SIZE;
@@ -260,14 +260,14 @@ int arena_allocator_init(Allocator *allocator, size_t size)
 	allocator->alloc   = arena_alloc;
 	allocator->realloc = arena_realloc;
 	allocator->free    = arena_free;
-out:
+OUT:
 	return ret;
 }
 
 void *arena_alloc(size_t size, void *ctx)
 {
 	void *ret = NULL;
-	if (!ctx) goto out;
+	if (!ctx) goto OUT;
 
 	Arena *arena = (Arena*)ctx;
 	pthread_mutex_lock(&arena->mutex);
@@ -282,7 +282,7 @@ void *arena_alloc(size_t size, void *ctx)
 			size_t new_cap = arena->offset_cap * 2;
 			size_t new_size = new_cap * sizeof(uintptr_t);
 			uintptr_t *new_offsets = realloc(arena->relative_offsets, new_size);
-			if (!new_offsets) goto out; // Handle failure
+			if (!new_offsets) goto OUT; // Handle failure
 			arena->relative_offsets = new_offsets;
 			arena->offset_cap = new_cap;
 		}
@@ -293,7 +293,7 @@ void *arena_alloc(size_t size, void *ctx)
 		printf("Memory is out of bounds or out of memory.\n");
 	}
 	pthread_mutex_unlock(&arena->mutex);
-out:
+OUT:
 	return ret;
 }
 
@@ -324,6 +324,7 @@ void *arena_realloc(void *ptr, size_t size, void *ctx)
 			memset(&arena->buffer[arena->curr_offset], 0, size - old_size);
 		ret = ptr;
 		pthread_mutex_unlock(&arena->mutex);
+		printf("optimized\n");
 		goto out;
 	}
 
@@ -344,5 +345,14 @@ void arena_free(void *ptr, void *ctx)
 {
 	(void)ptr;
 	(void)ctx;
+}
+
+void arena_free_all(void *ctx)
+{
+	Arena *arena = (Arena*)ctx;
+	arena->prev_offset = 0;
+	arena->curr_offset = 0;
+	arena->offset_len = 0;
+
 }
 

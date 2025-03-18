@@ -25,10 +25,11 @@ enum AllocatorType {
 typedef struct Allocator Allocator;
 struct Allocator {
         void *ctx;
-        enum  AllocatorType type;
+        enum AllocatorType type;
         void *(*alloc)(size_t size, void *ctx);
         void *(*realloc)(void *ptr, size_t size, void *ctx);
-        void  (*free)(void *ptr, void *ctx);
+        void (*free)(void *ptr, void *ctx);
+        void (*free_all)(void *ctx);
 };
 
 
@@ -60,8 +61,8 @@ typedef struct Arena Arena;
 struct Arena {
         unsigned char *buffer;
         size_t         cap;
-	size_t         prev_offset;
-	size_t         curr_offset;
+        size_t         prev_offset;
+        size_t         curr_offset;
 
         // stats
         uintptr_t *relative_offsets;
@@ -75,11 +76,12 @@ struct Arena {
 int arena_allocator_init(Allocator *allocator, size_t size);
 void *arena_alloc(size_t size, void *ctx);
 void arena_free(void *ptr, void *ctx);
+void arena_free_all(void *ctx);
 void *arena_realloc(void *ptr, size_t size, void *ctx);
 size_t arena_get_block_size(uintptr_t ptr, Arena *arena);
 uintptr_t arena_abs_offset(Arena *arena, uintptr_t relative_offset);
 
-// 
+//
 // TODO: BRIDGE ALLOC
 //
 void *bridge_alloc(size_t size);
