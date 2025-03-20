@@ -3,15 +3,14 @@
 #include <stdlib.h>
 
 #include "gfx.h"
-#include "ui.h"
 
-void gfx_canvas_init(Canvas *canvas, SRN_Surface *surface)
-{
-	canvas->width  = surface->width;
-	canvas->height = surface->height;
-	canvas->pitch  = surface->pitch;
-	canvas->buffer = surface->buffer;
-}
+/* void gfx_canvas_init(Canvas *canvas, SRN_Surface *surface) */
+/* { */
+/* 	canvas->width  = surface->width; */
+/* 	canvas->height = surface->height; */
+/* 	canvas->pitch  = surface->pitch; */
+/* 	canvas->buffer = surface->buffer; */
+/* } */
 
 void gfx_draw_pixel(Canvas *canvas, int x, int y, Color color)
 {

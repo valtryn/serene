@@ -7,12 +7,12 @@ BUILD_DIR = build
 BIN_DIR = bin
 
 CORE_SRC = core/main.c core/allocator.c core/str.c core/ds.c
-UI_SRC = ui/gfx.c ui/ui.c ui/util.c
+UI_SRC = ui/ui.c ui/util.c
 SRC = $(CORE_SRC) $(UI_SRC)
 
 OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRC))
 
-LIB = -lm -lX11
+LIB = -lm -lX11 -lXext
 export PKG_CONFIG_PATH := $(HOME)/Programming/opt/SDL3/lib/pkgconfig:$(PKG_CONFIG_PATH)
 CFLAGS += $(shell pkg-config --cflags sdl3)
 LDFLAGS += $(shell pkg-config --libs sdl3)
