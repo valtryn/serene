@@ -1,17 +1,12 @@
-#include <SDL3/SDL_stdinc.h>
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "ui.h"
 #include "util.h"
-#include "allocator.h"
 
 // TODO:
 /* static void srn_platform(void) */
@@ -33,10 +28,10 @@ void srn_init_window(char *title, int width, int height, Allocator *allocator)
 	// X11 backend 
 	{
 		// NOTE: separate this in the future
-		Image *image  = allocator->alloc(sizeof(Image), allocator->ctx);
-		image->width  = width;
-		image->height = height;
-		image->data   = allocator->alloc(width * height * sizeof(uint32_t), allocator->ctx);
+		Image *image   = allocator->alloc(sizeof(Image), allocator->ctx);
+		image->width   = width;
+		image->height  = height;
+		image->data    = allocator->alloc(width * height * sizeof(uint32_t), allocator->ctx);
 		backend.buffer = image;
 
 
@@ -48,6 +43,8 @@ void srn_init_window(char *title, int width, int height, Allocator *allocator)
 				1,
 				0,
 				0);
+		backend.gc = XCreateGC(backend.display, backend.window, 0, NULL);
+		XSelectInput(backend.display, backend.window, KeyPressMask | PointerMotionMask);
 
 		XMapWindow(backend.display, backend.window);
 		XSizeHints hints;
@@ -60,18 +57,6 @@ void srn_init_window(char *title, int width, int height, Allocator *allocator)
 		backend.back_buffer = back_buffer;
 		XWindowAttributes wa = {0};
 		XGetWindowAttributes(backend.display, backend.window, &wa);
-		backend.gc = XCreateGC(backend.display, backend.window, 0, NULL);
-/* 		backend.image = XCreateImage(backend.display, */
-/* 				wa.visual, */
-/* 				wa.depth, */
-/* 				ZPixmap, */
-/* 				0, */
-/* 				image->data, */
-/* 				image->width, */
-/* 				image->height, */
-/* 				32, */
-/* 				image->width * sizeof(uint32_t)); */
-
 		XShmSegmentInfo *si = allocator->alloc(sizeof(XShmSegmentInfo), allocator->ctx);
 		backend.image = XShmCreateImage(backend.display, 
 				wa.visual,
@@ -81,17 +66,13 @@ void srn_init_window(char *title, int width, int height, Allocator *allocator)
 				si,
 				width,
 				height);
-
 		si->shmid = shmget(IPC_PRIVATE, height * backend.image->bytes_per_line, IPC_CREAT | 0777);
-		si->shmaddr = backend.image->data = shmat(si->shmid, 0, 0);
+		image->data = si->shmaddr = backend.image->data = shmat(si->shmid, 0, 0);
 		si->readOnly = False;
-		image->data = si->shmaddr;
-
 		XShmAttach(backend.display, si);
 
 	}
 
-	/* XSync(backend.display, False); */
 	context.Time.current     = util_get_ns();
 	context.Time.previous    = context.Time.current;
 	context.Time.target      = 60;
@@ -103,13 +84,30 @@ void srn_init_window(char *title, int width, int height, Allocator *allocator)
 
 void srn_begin(void)
 {
-	XSelectInput(backend.display, backend.window, KeyPressMask | PointerMotionMask);
 	while (XPending(backend.display) > 0) {
 		XEvent event = {0};
 		XNextEvent(backend.display, &event);
 		switch (event.type) {
 			case MotionNotify:
-				printf("moving mouse\n");
+				{
+					Window root_window, child_window;
+					int window_x, window_y;
+					unsigned int mask;
+					context.Mouse.previous_position = context.Mouse.current_position;
+					int x = 0;
+					int y = 0;
+					XQueryPointer(backend.display,
+							backend.window,
+							&root_window, &child_window,
+							&window_x, &window_y,
+							&x, &y,
+							&mask);
+					context.Mouse.current_position  = (Vector2){ .x = x, .y = y };
+				}
+				break;
+			case ShmCompletion:
+				printf("asdfdfsdf\n");
+				break;
 		}
 	}
 	context.Time.previous = context.Time.current;
@@ -125,6 +123,7 @@ void srn_end(void)
 	/* 		backend.image, */
 	/* 		0, 0, 0, 0, */
 	/* 		backend.image->width, backend.image->height); */
+
 	XShmPutImage(backend.display,
 			backend.back_buffer,
 			backend.gc,
@@ -132,14 +131,14 @@ void srn_end(void)
 			0, 0,
 			0, 0,
 			context.Window.width, context.Window.height,
-			0);
+			True);
+	XFlush(backend.display);
+	XSync(backend.display, 0);
 
 	XdbeSwapInfo swap_info;
 	swap_info.swap_window = backend.window;
 	swap_info.swap_action = 0;
 	XdbeSwapBuffers(backend.display, &swap_info, 1);
-	/* XSync(backend.display, 0); */
-	XSync(backend.display, 0);
 
 	// calculate frame rate
 	context.Time.frame_count++;
@@ -205,18 +204,12 @@ void srn_clear_background(Color color)
 	}
 }
 
-
-
-void ui_get_mouse_state(int *x, int *y)
+Vector2 srn_get_mouse_position(void)
 {
-	Window root_window, child_window;
-	int window_x, window_y;
-	unsigned int mask;
-	XQueryPointer(backend.display, backend.window, &root_window, &child_window, &window_x, &window_y, x, y, &mask);
-	return;
+	return context.Mouse.current_position;
 }
 
-void ui_draw_pixel(int x, int y, Color color)
+void srn_draw_pixel(int x, int y, Color color)
 {
 	if (x >= backend.buffer->width || y >= backend.buffer->height || x < 0 || y < 0)
 		return;
@@ -225,11 +218,11 @@ void ui_draw_pixel(int x, int y, Color color)
 	*pixel = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 }
 
-void ui_draw_rectangle(int x, int y, int width, int height, Color color)
+void srn_draw_rectangle(int x, int y, int width, int height, Color color)
 {
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
-			ui_draw_pixel(x+i, y+j, color);
+			srn_draw_pixel(x+i, y+j, color);
 		}
 	}
 }

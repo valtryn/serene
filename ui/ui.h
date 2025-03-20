@@ -99,11 +99,12 @@ void srn_init_window(char *title, int width, int height, Allocator *allocator);
 void srn_begin(void);
 void srn_end(void);
 void srn_set_fps(unsigned int fps);
-int srn_get_fps(void);
+int  srn_get_fps(void);
 void srn_clear_background(Color color);
-void ui_get_mouse_state(int *x, int *y);
-void ui_draw_pixel(int x, int y, Color color);
-void ui_draw_rectangle(int x, int y, int width, int height, Color color);
+Vector2 srn_get_mouse_position(void);
+void srn_draw_pixel(int x, int y, Color color);
+void srn_draw_rectangle(int x, int y, int width, int height, Color color);
+
 // NOTE: use catppuccin colorscheme for now
 #define SERENE_ROSEWATER (Color){245, 224, 220, 255} /* #f5e0dc */
 #define SERENE_FLAMINGO  (Color){242, 205, 205, 255} /* #f2cdcd */

@@ -8,8 +8,8 @@
 #include "allocator.h"
 #include "ui.h"
 
-static const int width  = 1283;
-static const int height = 727;
+static const int width  = 1280;
+static const int height = 720;
 
 int main(void)
 {
@@ -19,13 +19,17 @@ int main(void)
 	srn_init_window("serene", width, height, &arena);
 	int quit = 0;
 
-	Vector2 pos = {0};
-	srn_set_fps(600);
+	int x;
+	int y;
+	srn_set_fps(60);
 	while (!quit) {
 		srn_begin();
 
-		ui_draw_rectangle(width/2, height/2, 100, 100, SERENE_GREEN);
 		srn_clear_background(SERENE_CRUST);
+		Vector2 pos = srn_get_mouse_position();
+		printf("x: %f | y: %f\n", pos.x, pos.y);
+		srn_draw_rectangle(pos.x-50, pos.y-50, 100, 100, SERENE_GREEN);
+
 		srn_end();
 		printf("fps: %d\n", srn_get_fps());
 	}
