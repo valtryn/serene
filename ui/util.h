@@ -5,5 +5,6 @@
 
 void util_delay_ns(long ns);
 long util_get_ns(void);
+float percentage_of(float percent, float value);
 
 #endif /* _UTIL_H */

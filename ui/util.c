@@ -18,3 +18,8 @@ long util_get_ns(void)
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * NS_PER_SEC + ts.tv_nsec;
 }
+
+float percentage_of(float percent, float value)
+{
+	return (percent / 100.0) * value;
+}

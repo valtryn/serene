@@ -16,6 +16,7 @@ typedef struct Vector2 Vector2;
 typedef struct Vector3 Vector3;
 typedef struct Rectangle Rectangle;
 typedef struct Image Image;
+typedef struct Widget Widget;
 
 struct Color {
 	unsigned char r;
@@ -56,6 +57,8 @@ typedef enum {
 	Wayland 
 } PLATFORM;
 
+extern SRN_Context context;
+
 struct SRN_X11 {
         Display        *display;
         Window	        window;
@@ -95,15 +98,44 @@ struct SRN_Context {
 		int  frame_count;
 	} Time;
 };
+
+struct Widget {
+
+	int x;
+	int y;
+
+	int width;
+	int height;
+	int min_width;
+	int min_height;
+	int padding;
+	int margin;
+
+	int border_width;
+
+	struct {
+		Color top;
+		Color bottom;
+		Color left;
+		Color right;
+	} BorderColor;
+
+	// TODO: todo
+	/* int hover; */
+	/* int click; */
+};
 void srn_init_window(char *title, int width, int height, Allocator *allocator);
 void srn_begin(void);
 void srn_end(void);
-void srn_set_fps(unsigned int fps);
+void srn_set_fps(int fps);
 int  srn_get_fps(void);
 void srn_clear_background(Color color);
 Vector2 srn_get_mouse_position(void);
 void srn_draw_pixel(int x, int y, Color color);
 void srn_draw_rectangle(int x, int y, int width, int height, Color color);
+void srn_draw_rectangle_outline(int x, int y, int width, int height, Color color);
+void srn_draw_line(int start_x, int start_y, int end_x, int end_y, Color color);
+void srn_draw_line_ex(int x1, int y1, int x2, int y2, int thickness, int alignment, Color color);
 
 // NOTE: use catppuccin colorscheme for now
 #define SERENE_ROSEWATER (Color){245, 224, 220, 255} /* #f5e0dc */

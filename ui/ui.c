@@ -4,6 +4,7 @@
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "ui.h"
 #include "util.h"
@@ -132,13 +133,13 @@ void srn_end(void)
 			0, 0,
 			context.Window.width, context.Window.height,
 			True);
-	XFlush(backend.display);
-	XSync(backend.display, 0);
 
 	XdbeSwapInfo swap_info;
 	swap_info.swap_window = backend.window;
 	swap_info.swap_action = 0;
 	XdbeSwapBuffers(backend.display, &swap_info, 1);
+
+	XSync(backend.display, 0);
 
 	// calculate frame rate
 	context.Time.frame_count++;
@@ -152,13 +153,13 @@ void srn_end(void)
 
 	double frame_delay = (double)NS_PER_SEC/context.Time.target;
 	long elapsed_time = util_get_ns() - context.Time.current;
-	if ((double)elapsed_time < frame_delay)
+	if ((double)elapsed_time < frame_delay && context.Time.current > 0)
 		util_delay_ns(frame_delay - elapsed_time);
 }
 
-void srn_set_fps(unsigned int fps)
+void srn_set_fps(int fps)
 {
-	context.Time.target = fps;
+	context.Time.target = fps * 1.05;
 }
 
 int srn_get_fps(void)
@@ -173,10 +174,10 @@ void srn_clear_background(Color color)
 	uint32_t value = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 	uint32_t *buffer = (uint32_t*)backend.buffer->data;
 
-	int remaining = pixel_count % 20;
+	int remaining = pixel_count % 32;
 	int offset = pixel_count - remaining;
 	
-	for (int i = 0; i < offset; i+=20) {
+	for (int i = 0; i < offset; i+=32) {
 		buffer[i+0] = value;
 		buffer[i+1] = value;
 		buffer[i+2] = value;
@@ -197,6 +198,18 @@ void srn_clear_background(Color color)
 		buffer[i+17] = value;
 		buffer[i+18] = value;
 		buffer[i+19] = value;
+		buffer[i+20] = value;
+		buffer[i+21] = value;
+		buffer[i+22] = value;
+		buffer[i+23] = value;
+		buffer[i+24] = value;
+		buffer[i+25] = value;
+		buffer[i+26] = value;
+		buffer[i+27] = value;
+		buffer[i+28] = value;
+		buffer[i+29] = value;
+		buffer[i+30] = value;
+		buffer[i+31] = value;
 	}
 
 	for (int i = offset; i < pixel_count; i++) {
@@ -225,5 +238,63 @@ void srn_draw_rectangle(int x, int y, int width, int height, Color color)
 			srn_draw_pixel(x+i, y+j, color);
 		}
 	}
+}
+
+void srn_draw_line(int start_x, int start_y, int end_x, int end_y, Color color)
+{
+	// Copied from https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+	int x0 = start_x;
+	int y0 = start_y;
+	int x1 = end_x;
+	int y1 = end_y;
+
+	int dx = abs(x1- x0);
+	int sx = x0 < x1 ? 1 : -1;
+	int dy = -abs(y1 - y0);
+	int sy = y0 < y1 ? 1 : -1;
+	int error = dx + dy;
+
+	while (1) {
+		srn_draw_pixel(x0, y0, color);
+		int e2 = 2 * error;
+
+		if (e2 >= dy) {
+			if (x0 == x1) break;
+			error = error + dy;
+			x0 = x0 + sx;
+		}
+		if (e2 <= dx) {
+			if (y0 == y1) break;
+			error = error + dx;
+			y0 = y0 + sy;
+		}
+	}
+}
+
+void srn_draw_line_ex(int x1, int y1, int x2, int y2, int thickness, int alignment, Color color)
+{
+	// NOTE: this assumes horizontal for now
+	switch (alignment) {
+		case 0: // bottom/right expand
+			for (int i = 0; i < thickness; i++)
+				srn_draw_line(x1, y1 + i, x2, y2 + i, color);
+			break;
+		case 1: // upper/left expand
+			for (int i = 0; i < thickness; i++)
+				srn_draw_line(x1, y1 - i, x2, y2 - i, color);
+			break;
+	}
+}
+
+void srn_draw_rectangle_outline(int x, int y, int width, int height, Color color)
+{
+	// upper
+	srn_draw_line(x, y, x + width, y, color);
+	// left
+	srn_draw_line(x + width, y, x + width, y + height, color);
+	// lower
+	srn_draw_line(x, y + height, x + width, y + height, color);
+	// right
+	srn_draw_line(x, y + height, x, y, color);
 }
 
