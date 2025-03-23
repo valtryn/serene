@@ -2,20 +2,20 @@ CC = cc
 CDISABLEDFLAGS = -Wno-error=cast-align -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable -Wno-sign-conversion
 CFLAGS = -O0 -Wall -Wextra -Werror -std=c11 -g -Wpedantic -Wvla -Wcast-align=strict -Wunreachable-code -Wformat=2 -Wstrict-prototypes
 CFLAGS += $(CDISABLEDFLAGS)
-CFLAGS += -I./core -I./ui -I./test
+CFLAGS += -I. -I./core -I./ui -I./test
 BUILD_DIR = build
 BIN_DIR = bin
 
-CORE_SRC = core/main.c core/allocator.c core/str.c core/ds.c
-UI_SRC = ui/ui.c ui/util.c ui/menubar.c
+CORE_SRC = base/main.c base/allocator.c base/str.c base/ds.c
+UI_SRC   = ui/core.c ui/x11.c ui/gfx.c ui/color.c ui/box.c
 SRC = $(CORE_SRC) $(UI_SRC)
 
 OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRC))
 
 LIB = -lm -lX11 -lXext
-export PKG_CONFIG_PATH := $(HOME)/Programming/opt/SDL3/lib/pkgconfig:$(PKG_CONFIG_PATH)
-CFLAGS += $(shell pkg-config --cflags sdl3)
-LDFLAGS += $(shell pkg-config --libs sdl3)
+# export PKG_CONFIG_PATH := $(HOME)/Programming/opt/SDL3/lib/pkgconfig:$(PKG_CONFIG_PATH)
+# CFLAGS += $(shell pkg-config --cflags sdl3)
+# LDFLAGS += $(shell pkg-config --libs sdl3)
 
 all: $(BIN_DIR)/serene
 

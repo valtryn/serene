@@ -4,17 +4,20 @@
 #include "str.h"
 #include "allocator.h"
 
+// TODO: rename to str_create or have parameter ptr to a string
 string str_init(size_t len, Allocator *allocator)
 {
 	StringHeader *hdr = NULL;
 	string str = NULL;
 
-	if (!allocator)
+	if (!allocator) {
 		goto out;
+	}
 
 	void *ptr = allocator->alloc(sizeof(StringHeader) + len + 1, allocator->ctx);
-	if (!ptr)
+	if (!ptr) {
 		goto out;
+	}
 
 	str = (char*)ptr + sizeof(StringHeader);
 	memset(str, 0, len + 1);
@@ -29,8 +32,9 @@ out:
 string str_clone_from_buf(const void *src, size_t len, Allocator *allocator)
 {
 	string str = NULL;
-	if (!src || len == 0 || !allocator)
+	if (!src || len == 0 || !allocator) {
 		goto out;
+	}
 
 	str = str_init(len, allocator);
 	memcpy(str, src, len);
