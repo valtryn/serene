@@ -1,3 +1,4 @@
+// TODO: refactor the excessive use of goto
 #include <stdio.h>
 #include <string.h>
 
@@ -32,7 +33,7 @@ out:
 string str_clone_from_buf(const void *src, size_t len, Allocator *allocator)
 {
 	string str = NULL;
-	if (!src || len == 0 || !allocator) {
+	if (!src || !allocator) {
 		goto out;
 	}
 

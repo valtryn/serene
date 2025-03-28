@@ -2,34 +2,32 @@
 #define CORE_H
 
 #include "base/allocator.h"
-#include "base/str.h"
+#include "base/types.h"
 #include "color.h"
-#include <stdbool.h>
 
-#define NS_PER_SEC 1000000000LL
+#define MAX_STATE 512
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-typedef struct Context Context;
-typedef struct SRN_Window SRN_Window;
-typedef struct Surface Surface;
+#define MS_PER_SECOND   1000
+#define US_PER_SECOND   1000000
+#define NS_PER_SECOND   1000000000LL
+#define NS_PER_MS       1000000
+#define NS_PER_US       1000
 
-typedef struct Event Event;
+#define SECONDS_TO_NS(S)    (((uint64_t)(S)) * NS_PER_SECOND)
+#define NS_TO_SECONDS(NS)   ((NS) / NS_PER_SECOND)
+#define MS_TO_NS(MS)        (((uint64_t)(MS)) * NS_PER_MS)
+#define NS_TO_MS(NS)        ((NS) / NS_PER_MS)
+#define US_TO_NS(US)        (((uint64_t)(US)) * NS_PER_US)
+#define NS_TO_US(NS)        ((NS) / NS_PER_US)
+#define NS_TO_SEC(NS)        ((NS) / NS_PER_US)
 
 typedef struct Vector2 Vector2;
 typedef struct Vector3 Vector3;
 typedef struct Rectangle Rectangle;
 typedef struct Image Image;
 
-typedef enum {
-	PF_RGBA32 = 0,
-} PixelFormat;
-
-typedef enum EventType {
-	EVENT_QUIT	         = 0,
-	EVENT_MOUSE_MOTION,
-    	EVENT_MOUSE_BUTTON_DOWN,
-    	EVENT_MOUSE_BUTTON_UP,         
-    	EVENT_MOUSE_WHEEL,
-} EventType;
+#define VEC2(x, y) ((Vector2){(x), (y)})
 
 struct Vector2 {
         float x;
@@ -42,83 +40,96 @@ struct Vector3 {
         float z;
 };
 
-extern Context global_ctx;
-
-struct SRN_Window {
-	string title;
-	int x, y;
-	int width, height;
-	int min_w, min_h;
-	int max_w, max_h;
-};
-
-struct Surface {
-	void        *data;
-	int          width;
-	int          height;
-	int          pitch;
-	PixelFormat  fmt;
-};
-
-struct Event {
-	EventType type;
-};
-
-struct Context {
-	Allocator *alloc;
-	SRN_Window window;
-	Surface    surface;
-
-	struct {
-		Vector2 curr_pos;
-		Vector2 prev_pos;
-		struct {
-			int press;
-			int scroll;
-			int scroll_direction;
-		} State;
-	} Mouse;
-
-
-	struct {
-		long init_time;
-		long current;
-		long previous;
-
-		int target_fps;
-		int current_fps;
-		int frame_count;
-	} Time;
-
-	
+struct Rectangle {
+	float x;
+	float y;
+	float width; 
+	float height;
 };
 
 struct Image {
-	void *data;
-	int  width;
-	int  height;
-	int  pitch;
-	int  format;
-	/* int  mipmap; */
+	void *pixels;
+	U32   width;
+	U32   height;
 };
 
+//
+// WINDOW
+//
+typedef struct SRN_Context  SRN_Context;
+typedef struct SRN_Window   SRN_Window;
+typedef struct SRN_Surface  SRN_Surface;
+typedef struct SRN_Time     SRN_Time;
+typedef struct SRN_Keyboard SRN_Keyboard;
+typedef struct SRN_Mouse    SRN_Mouse;
 
-// window
-void init_window(string title, int width, int height, Allocator *alloc);
-int  poll_event(Event *event);
-void surface_draw(void);
-Vector2 get_mouse_position(void);
+typedef enum {
+	PIXELFORMAT_RGBA32 = 0,
+} PixelFormat;
 
+//
+// TODO: support/add the missing properties
+struct SRN_Window {
+	string title;
+	U32    x, y;
+	U32    width;
+	U32    height;
+};
+
+struct SRN_Surface {
+	void *pixels;
+	U32   width;
+	U32   height;
+	U32   pitch;
+	U64   flags;
+	PixelFormat format;
+};
+
+struct SRN_Keyboard {
+	U8 curr_key_state[MAX_STATE];
+	U8 prev_key_state[MAX_STATE];
+};
+
+struct SRN_Mouse {
+	Vector2 curr_pos;
+	Vector2 prev_pos;
+};
+
+struct SRN_Time {
+	double current;
+	double previous;
+	double update;   // time to update the frame buffer (ns)
+	double draw;     // time to draw to the frame buffer to the screen/window (ns)
+	double frame;    // delta (ns)
+	double target;   // target time per frame (ns)
+	U32    frame_count;
+};
+
+struct SRN_Context {
+	Allocator    *allocator;
+	SRN_Window   Window;
+	SRN_Surface  Surface;
+	SRN_Time     Time;
+	SRN_Mouse    Mouse;
+	SRN_Keyboard Keyboard;
+};
+
+extern SRN_Context CONTEXT;
+
+// WINDOW
+int init_window(string title, int width, int height, Allocator *alloc);
 void begin(void);
 void end(void);
-void clear_background(Color color);
+int should_close(void);
 
-// util
-Vector2 vec2(float x, float y);
-void    set_fps(unsigned int fps);
-unsigned int get_fps(void);
+// UTIL FUNCTIONS
+void  clear_background(Color color);
+void  set_fps(U32 fps);
+U32   get_fps(void);
+float get_frame_time(void);
 
-// time
-unsigned long get_tick_ns(void);
-void     delay_ns(long ns);
+// TIMING FUNCTIONS
+void time_delay(uint64_t ns);
+U64  time_get_ticks(void);
+
 #endif /* CORE_H */

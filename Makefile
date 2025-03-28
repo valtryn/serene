@@ -7,7 +7,7 @@ BUILD_DIR = build
 BIN_DIR = bin
 
 CORE_SRC = base/main.c base/allocator.c base/str.c base/ds.c
-UI_SRC   = ui/core.c ui/x11.c ui/gfx.c ui/color.c ui/box.c
+UI_SRC   = ui/core.c ui/gfx.c ui/color.c 
 SRC = $(CORE_SRC) $(UI_SRC)
 
 OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRC))

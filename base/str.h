@@ -7,6 +7,8 @@
 
 #define STRING_HEADER(str) ((StringHeader *)(uintptr_t)(str) - 1)
 
+typedef char* string;
+
 typedef struct StringHeader StringHeader;
 struct StringHeader {
 	Allocator *alloc;
@@ -14,7 +16,6 @@ struct StringHeader {
 	// TODO: maybe add cap
 	/* size_t     cap; */
 };
-typedef char* string;
 
 void str_debug(string str);
 string str_make(const char *cstr,  Allocator *allocator);

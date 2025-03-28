@@ -12,6 +12,7 @@ struct Color {
 	unsigned char a;
 };
 
+#define COLOR(r,g,b,a) ((Color){(r), (g), (b), (a)});
 uint32_t color_ARGB(Color color);
 uint32_t color_to_int(Color color);
 

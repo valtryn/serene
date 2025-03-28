@@ -1,2 +1,6 @@
-TODO:
-	SVG Parser (maybe)
+SCHEDULE
+
+(03/28/25)
+[x] refactor rendering pipline
+[x] design components
+[x] refactor alpha compositing

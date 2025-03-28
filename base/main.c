@@ -1,29 +1,28 @@
-#include "base/allocator.h"
-#include "base/str.h"
-#include "box.h"
-#include "color.h"
-#include "gfx.h"
-#include "ui/core.h"
 #include <stdio.h>
 
+#include "base/allocator.h"
+#include "base/str.h"
+#include "color.h"
+#include "core.h"
+#include "gfx.h"
 
 int main(void)
 {
+	int width = 1280;
+	int height = 720;
+
 	Allocator arena = {0};
 	arena_allocator_init(&arena, megabytes(10));
-	init_window(str_make("serene", &arena), 1280, 720, &arena);
-	Event event;
-	set_fps(60);
-	int quit = 0;
-	int x = 0;
-	int y = 0;
-	while (!quit) {
+	init_window(str_make("Serene", &arena), width, height, &arena);
+	set_fps(-1);
+	while(!should_close()) {
 		begin();
-		gfx_clear_background(SERENE_CLEAR_BLACK);
-		draw_button();
-		/* gfx_draw_pixel(100, 100, SERENE_GREEN); */
+		clear_background(SERENE_CLEAR_BLACK);
+		/* gfx_draw_rectangle(0, 0, 250, 250, SERENE_BLUE); */
 		printf("fps: %d\n", get_fps());
 		end();
 	}
+	allocator_deinit(&arena);
 	return 0;
 }
+
