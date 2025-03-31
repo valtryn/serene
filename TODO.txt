@@ -1,6 +1,12 @@
 SCHEDULE
 
 (03/28/25)
-[x] refactor rendering pipline
+[o] refactor rendering pipline
 [x] design components
 [x] refactor alpha compositing
+(03/30/25)
+[x] create a draw_image() function
+[x] finish backlog from - 03/28/25
+[o] implement mouse btn util functions
+(03/31/25)
+[x] finish all backlogs

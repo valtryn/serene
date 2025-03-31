@@ -1,13 +1,15 @@
 CC = cc
 CDISABLEDFLAGS = -Wno-error=cast-align -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable -Wno-sign-conversion
-CFLAGS = -O0 -Wall -Wextra -Werror -std=c11 -g -Wpedantic -Wvla -Wcast-align=strict -Wunreachable-code -Wformat=2 -Wstrict-prototypes
+COPTIMIZATION = -O3 -march=native -mtune=native
+CFLAGS = -Wall -Wextra -Werror -std=c11 -g -Wpedantic -Wvla -Wcast-align=strict -Wunreachable-code -Wformat=2 -Wstrict-prototypes
 CFLAGS += $(CDISABLEDFLAGS)
+CFLAGS += $(COPTIMIZATION)
 CFLAGS += -I. -I./core -I./ui -I./test
 BUILD_DIR = build
 BIN_DIR = bin
 
 CORE_SRC = base/main.c base/allocator.c base/str.c base/ds.c
-UI_SRC   = ui/core.c ui/gfx.c ui/color.c 
+UI_SRC   = ui/core.c ui/gfx.c ui/color.c ui/components.c
 SRC = $(CORE_SRC) $(UI_SRC)
 
 OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRC))

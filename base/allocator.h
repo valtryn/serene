@@ -73,10 +73,10 @@ struct Arena {
         pthread_mutex_t mutex;
 };
 
-int arena_allocator_init(Allocator *allocator, size_t size);
+int   arena_allocator_init(Allocator *allocator, size_t size);
 void *arena_alloc(size_t size, void *ctx);
-void arena_free(void *ptr, void *ctx);
-void arena_free_all(void *ctx);
+void  arena_free(void *ptr, void *ctx);
+void  arena_free_all(void *ctx);
 void *arena_realloc(void *ptr, size_t size, void *ctx);
 size_t arena_get_block_size(uintptr_t ptr, Arena *arena);
 uintptr_t arena_abs_offset(Arena *arena, uintptr_t relative_offset);

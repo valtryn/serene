@@ -244,9 +244,9 @@ int arena_allocator_init(Allocator *allocator, size_t size)
 		free(arena);
 		goto OUT;
 	};
-	arena->cap = size;
-	arena->offset_cap = DEFAULT_ALLOC_SIZE;
-	arena->offset_len = 0;
+	arena->cap         = size;
+	arena->offset_cap  = DEFAULT_ALLOC_SIZE;
+	arena->offset_len  = 0;
 	arena->curr_offset = 0;
 	arena->prev_offset = 0;
 
@@ -255,11 +255,12 @@ int arena_allocator_init(Allocator *allocator, size_t size)
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(&arena->mutex, &attr);
 
-	allocator->ctx     = arena;
-	allocator->type    = ARENA_ALLOCATOR;
-	allocator->alloc   = arena_alloc;
-	allocator->realloc = arena_realloc;
-	allocator->free    = arena_free;
+	allocator->ctx      = arena;
+	allocator->type     = ARENA_ALLOCATOR;
+	allocator->alloc    = arena_alloc;
+	allocator->realloc  = arena_realloc;
+	allocator->free     = arena_free;
+	allocator->free_all = arena_free_all;
 OUT:
 	return ret;
 }

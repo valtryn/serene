@@ -13,7 +13,6 @@ void array_init(Array *array, size_t element_size, size_t capacity, Allocator *a
 
 void array_resize(Array *array, size_t new_size)
 {
-	printf("resized: %zu\n", new_size);
 	if (new_size < array->length)
 		array->length = new_size;
 

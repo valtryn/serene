@@ -1,4 +1,5 @@
-#define _POSIX_C_SOURCE 199309L
+#include "keycode.h"
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <math.h>
 #include <sys/shm.h>
@@ -11,9 +12,10 @@
 #include <X11/extensions/XShm.h>
 #include <X11/Xatom.h>
 
-#include "core.h"
-#include "backend.h"
+#include "base/allocator.h"
 #include "base/types.h"
+#include "backend.h"
+#include "core.h"
 #include "gfx.h"
 
 SRN_Context CONTEXT = {0};
@@ -22,6 +24,9 @@ BackendContext backend = {0};
 int init_window(string title, int width, int height, Allocator *alloc)
 {
 	CONTEXT.allocator = alloc;
+	Allocator *frame_arena_alloc = alloc->alloc(sizeof(Allocator), alloc->ctx);
+	arena_allocator_init(frame_arena_alloc, megabytes(1));
+	CONTEXT.frame_allocator = frame_arena_alloc;
 
 	CONTEXT.Window.title  = title;
 	CONTEXT.Window.width  = width;
@@ -31,16 +36,21 @@ int init_window(string title, int width, int height, Allocator *alloc)
 
 	CONTEXT.Surface.format = PIXELFORMAT_RGBA32;
 	// NOTE: assume the pixel format is RGBA32 for now
-	if (CONTEXT.Surface.format == PIXELFORMAT_RGBA32) {
-		CONTEXT.Surface.pixels = alloc->alloc(sizeof(U32) * width * height, alloc->ctx);
-	}
+	/* if (CONTEXT.Surface.format == PIXELFORMAT_RGBA32) { */
+	/* 	CONTEXT.Surface.pixels = alloc->alloc(sizeof(U32) * width * height, alloc->ctx); */
+	/* } */
 	CONTEXT.Surface.width  = width;
 	CONTEXT.Surface.height = height;
 	CONTEXT.Surface.pitch  = width * sizeof(U32);
 	CONTEXT.Surface.flags  = 0;
 
-	memset(CONTEXT.Keyboard.curr_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.curr_key_state));
-	memset(CONTEXT.Keyboard.prev_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.prev_key_state));
+	/* memset(CONTEXT.Keyboard.curr_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.curr_key_state)); */
+	/* memset(CONTEXT.Keyboard.prev_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.prev_key_state)); */
+
+	memset(CONTEXT.Keyboard.curr_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.curr_key_state) * sizeof(U32));
+	memset(CONTEXT.Keyboard.prev_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.prev_key_state) * sizeof(U32));
+	memset(CONTEXT.Mouse.curr_mouse_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.curr_key_state) * sizeof(U8));
+	memset(CONTEXT.Mouse.prev_mouse_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.prev_key_state) * sizeof(U8));
 
 	CONTEXT.Mouse.prev_pos = VEC2(0, 0);
 	CONTEXT.Mouse.curr_pos = VEC2(0, 0);
@@ -71,6 +81,8 @@ int init_window(string title, int width, int height, Allocator *alloc)
 			0,
 			0
 	);
+
+	XSelectInput(display, window, ButtonReleaseMask| ButtonPressMask | KeyPressMask | PointerMotionMask);
 	XMapWindow(display, window);
 
 	// NOTE: this should not be here
@@ -99,9 +111,7 @@ int init_window(string title, int width, int height, Allocator *alloc)
 			CONTEXT.Surface.width,
 			CONTEXT.Surface.height
 	);
-	image->bytes_per_line = CONTEXT.Surface.pitch;
-	si->shmid = shmget(IPC_PRIVATE, CONTEXT.Surface.height * image->bytes_per_line, IPC_CREAT | 0777);
-	// NOTE: not sure why assigning this works by copying into surface.pixels does not
+	si->shmid = shmget(IPC_PRIVATE, CONTEXT.Surface.height * CONTEXT.Surface.pitch, IPC_CREAT |  0777);
 	CONTEXT.Surface.pixels = si->shmaddr = image->data = shmat(si->shmid, 0, 0);
 	si->readOnly = False;
 	XShmAttach(display, si);
@@ -142,27 +152,29 @@ int draw_surface(void)
 	return 0;
 }
 
-void begin(void)
+void BEGIN(void)
 {
 	CONTEXT.Time.previous = CONTEXT.Time.current;
 	CONTEXT.Time.current  = time_get_ticks();
 }
 
-void end(void)
+void END(void)
 {
-	memcpy(CONTEXT.Keyboard.prev_key_state, CONTEXT.Keyboard.curr_key_state, MAX_STATE);
-	memset(CONTEXT.Keyboard.curr_key_state, 0, MAX_STATE);
-	uint64_t update_end = time_get_ticks();
+	U64 update_end = time_get_ticks();
 	CONTEXT.Time.update = update_end - CONTEXT.Time.current;
 
 	draw_surface();
 
-	CONTEXT.Time.draw   = time_get_ticks() - update_end;
-	double elapsed = time_get_ticks() - CONTEXT.Time.current;
+	CONTEXT.Time.draw = time_get_ticks() - update_end;
+	double elapsed    = time_get_ticks() - CONTEXT.Time.current;
 
 	CONTEXT.Time.frame = CONTEXT.Time.current - CONTEXT.Time.previous;
 	if (CONTEXT.Time.target > 0 && elapsed < CONTEXT.Time.target)
 		time_delay((CONTEXT.Time.target - elapsed));
+
+	CONTEXT.Mouse.prev_pos = CONTEXT.Mouse.curr_pos;
+	memcpy(CONTEXT.Mouse.prev_mouse_state, CONTEXT.Mouse.curr_mouse_state, ARRAY_SIZE(CONTEXT.Mouse.prev_mouse_state) * sizeof(U8));
+	CONTEXT.frame_allocator->free_all(CONTEXT.frame_allocator->ctx);
 }
 
 int should_close(void)
@@ -183,31 +195,35 @@ int should_close(void)
 
 		// NOTE: (SELF) IF THE EVENT IS NOT HANDLED YOU SHOULD PROBABLY ADD IT TO XSelectInput.
 		switch (x11_event.type) {
-			// TODO: implement this
+			// TODO: implement
 			/* case ClientMessage: */
 			/* 	if ((Atom)x11_event.xclient.data.l[0] == wm_delete_window) */
 			/* 		ret = 1;  // Exit the loop */
 			/* 	break; */
 			case MotionNotify:
+				XQueryPointer(display, window, &root_window, &child_window, &window_x, &window_y, &x, &y, &mask);
+				CONTEXT.Mouse.curr_pos = VEC2(x, y);
 				break;
 			case ButtonPress:
+				CONTEXT.Mouse.curr_mouse_state[x11_event.xbutton.button] = PRESS;
 				break;
-			case ButtonRelease:
+			case ButtonRelease: {
+				CONTEXT.Mouse.curr_mouse_state[x11_event.xbutton.button] = RELEASE;
 				break;
+			}
 			case KeyPress: {
 				// TODO: handle modifiers
-				KeySym keysym = XLookupKeysym(&x11_event.xkey, 0);
-				if (keysym <= 512)
-					CONTEXT.Keyboard.curr_key_state[keysym] = keysym;
-				printf("key: %zu\n", keysym);
+				/* KeySym keysym = XLookupKeysym(&x11_event.xkey, 0); */
+				/* if (keysym <= MAX_KEY_STATE) */
+				/* 	CONTEXT.Keyboard.curr_key_state[keysym] = keysym; */
+				/* if (keysym == XK_q) { */
+				/* 	ret = 1; */
+				/* } */
 				break;
 			}
 			case KeyRelease:
 				break;
 			default:
-				XQueryPointer(display, window, &root_window, &child_window, &window_x, &window_y, &x, &y, &mask);
-				CONTEXT.Mouse.prev_pos = CONTEXT.Mouse.curr_pos;
-				CONTEXT.Mouse.curr_pos = VEC2(x, y);
 				break;
 		}
 	}
@@ -227,14 +243,45 @@ void set_fps(U32 fps)
 	CONTEXT.Time.target = (double)NS_PER_SECOND/fps;
 }
 
+// TODO: implement a more accurate fps counter
 U32 get_fps(void)
 {
 	return ceil(NS_PER_SECOND/CONTEXT.Time.frame);
 }
 
+Vector2 get_mouse_position(void)
+{
+	return CONTEXT.Mouse.curr_pos;
+}
+
 float get_frame_time(void)
 {
 	return CONTEXT.Time.frame/NS_PER_SECOND;
+}
+
+bool is_mouse_btn_press(SRN_MOUSE key)
+{
+	return (CONTEXT.Mouse.curr_mouse_state[key] == PRESS) && (CONTEXT.Mouse.prev_mouse_state[key] == RELEASE);
+}
+
+bool is_mouse_btn_down(SRN_MOUSE key)
+{
+	return (CONTEXT.Mouse.curr_mouse_state[key] == PRESS);
+}
+
+bool is_mouse_btn_released(SRN_MOUSE key)
+{
+	return (CONTEXT.Mouse.curr_mouse_state[key] == RELEASE) && (CONTEXT.Mouse.prev_mouse_state[key] == PRESS);
+}
+
+bool is_mouse_btn_up(SRN_MOUSE key)
+{
+	return (CONTEXT.Mouse.curr_mouse_state[key] == RELEASE);
+}
+
+float lerp(float v0, float v1, float t)
+{
+	return (1 - t) * v0 + t * v1;
 }
 
 //
