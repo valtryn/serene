@@ -7,6 +7,8 @@
 #include "color.h"
 #include "keycode.h"
 
+#define FPS_UNCAPPED -1
+
 #define MAX_KEY_STATE   512
 #define MAX_MOUSE_STATE 16
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -17,13 +19,13 @@
 #define NS_PER_MS     1000000
 #define NS_PER_US     1000
 
-#define SECONDS_TO_NS(S)    (((uint64_t)(S)) * NS_PER_SECOND)
-#define NS_TO_SECONDS(NS)   ((NS) / NS_PER_SECOND)
-#define MS_TO_NS(MS)        (((uint64_t)(MS)) * NS_PER_MS)
-#define NS_TO_MS(NS)        ((NS) / NS_PER_MS)
-#define US_TO_NS(US)        (((uint64_t)(US)) * NS_PER_US)
-#define NS_TO_US(NS)        ((NS) / NS_PER_US)
-#define NS_TO_SEC(NS)        ((NS) / NS_PER_US)
+/* #define SECONDS_TO_NS(S)    (((uint64_t)(S)) * NS_PER_SECOND) */
+/* #define NS_TO_SECONDS(NS)   ((NS) / NS_PER_SECOND) */
+/* #define MS_TO_NS(MS)        (((uint64_t)(MS)) * NS_PER_MS) */
+/* #define NS_TO_MS(NS)        ((NS) / NS_PER_MS) */
+/* #define US_TO_NS(US)        (((uint64_t)(US)) * NS_PER_US) */
+/* #define NS_TO_US(NS)        ((NS) / NS_PER_US) */
+/* #define NS_TO_SEC(NS)        ((NS) / NS_PER_US) */
 
 typedef struct Vector2 Vector2;
 typedef struct Vector3 Vector3;
@@ -93,15 +95,15 @@ struct SRN_Surface {
 };
 
 struct SRN_Keyboard {
-	U32 curr_key_state[MAX_KEY_STATE];
-	U32 prev_key_state[MAX_KEY_STATE];
+	U32 curr_state[MAX_KEY_STATE];
+	U32 prev_state[MAX_KEY_STATE];
 };
 
 struct SRN_Mouse {
 	Vector2 curr_pos;
 	Vector2 prev_pos;
-	U8 curr_mouse_state[MAX_MOUSE_STATE];
-	U8 prev_mouse_state[MAX_MOUSE_STATE];
+	U8 curr_state[MAX_MOUSE_STATE];
+	U8 prev_state[MAX_MOUSE_STATE];
 };
 
 struct SRN_Time {
