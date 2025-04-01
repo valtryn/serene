@@ -1,6 +1,6 @@
 CC = cc
 CDISABLEDFLAGS = -Wno-error=cast-align -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable -Wno-sign-conversion
-COPTIMIZATION = -O3 -march=native -mtune=native
+COPTIMIZATION = -O0
 CFLAGS = -Wall -Wextra -Werror -std=c11 -g -Wpedantic -Wvla -Wcast-align=strict -Wunreachable-code -Wformat=2 -Wstrict-prototypes
 CFLAGS += $(CDISABLEDFLAGS)
 CFLAGS += $(COPTIMIZATION)

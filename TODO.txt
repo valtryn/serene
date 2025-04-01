@@ -10,3 +10,6 @@ SCHEDULE
 [o] implement mouse btn util functions
 (03/31/25)
 [x] finish all backlogs
+(04/21/25)
+[o] implement deinit_window()
+[x] finish some backlog
