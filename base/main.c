@@ -6,7 +6,7 @@
 #include "components.h"
 #include "core.h"
 #include "gfx.h"
-#include "keycode.h"
+
 
 int main(void)
 {
@@ -21,15 +21,25 @@ int main(void)
 		BEGIN();
 		{
 			clear_background(COLOR_BLACK);
-			if(button(100, 100, 250, 200)) {
-			}
-			/* gfx_draw_rectangle(pos.x - 50, pos.y - 50, 100, 100, COLOR_CRUST); */
-			/* printf("fps: %d\n", get_fps()); */
-			/* printf("mouse pos: x: %f - x: %f\n", pos.x, pos.y); */
+			if(button(100, 100, 250, 200))
+				gfx_draw_rectangle(20, 20, 100, 100, COLOR_GREEN);
 		}
 		END();
 	}
+	deinit_window();
 	allocator_deinit(&arena);
 	return 0;
 }
 
+/* int main(void) */
+/* { */
+/* 	Allocator arena = {0}; */
+/* 	arena_allocator_init(&arena, megabytes(10)); */
+
+/* 	Allocator *arena_heap = arena.alloc(sizeof(Allocator), arena.ctx); */
+/* 	arena_allocator_init(arena_heap, megabytes(1)); */
+
+/* 	allocator_deinit(arena_heap); */
+/* 	allocator_deinit(&arena); */
+
+/* } */

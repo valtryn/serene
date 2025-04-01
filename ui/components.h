@@ -6,21 +6,14 @@
 #include "color.h"
 #include "core.h"
 
-typedef enum BorderPosition {
-	CENTER = 0,
-	INSIDE,
-	OUTSIDE
-} BorderPosition;
-
-static const U32 BORDER_TOP      = 1 << 0;
-static const U32 BORDER_RIGHT    = 1 << 1;
-static const U32 BORDER_BOTTOM   = 1 << 2;
-static const U32 BORDER_LEFT     = 1 << 3;
-
- // NOTE: which direction the border expands when width > 1
-static const U32 BORDER_POSITION_CENTER  = 1 << 4;
-static const U32 BORDER_POSITION_INSIDE  = 1 << 5;
-static const U32 BORDER_POSITION_OUTSIDE = 1 << 6;
+#define BORDER_NONE   (U32)0
+#define BORDER_TOP    (U32)1 << 1
+#define BORDER_RIGHT  (U32)1 << 2
+#define BORDER_BOTTOM (U32)1 << 3
+#define BORDER_LEFT   (U32)1 << 4
+#define BORDER_POSITION_CENTER  (U32)1 << 5
+#define BORDER_POSITION_INSIDE  (U32)1 << 6
+#define BORDER_POSITION_OUTSIDE (U32)1 << 7
 
 typedef struct Component Component;
 struct Component {
@@ -49,9 +42,9 @@ struct Component {
 bool button(int x, int y, int width, int height);
 
 // UTILITY FUNCTIONS
-void set_border_active(Component *c, U32 mask);
+void set_border_side(Component *c, U32 mask, bool overwrite);
 void set_border_position(Component *c, U32 mask);
-bool mouse_in_rect(Vector2 pos, Component *rect);
+bool mouse_in_rect(Vector2 pos, Rectangle rect);
 
 
 #endif // COMPONENTS_H

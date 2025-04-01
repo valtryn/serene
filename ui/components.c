@@ -1,5 +1,5 @@
 #include <X11/Xlib.h>
-#include <stdio.h>
+#include <stdbool.h>
 
 #include "components.h"
 #include "base/allocator.h"
@@ -23,14 +23,26 @@ Component *create_component(void)
 
 	c->border.width  = 1;
 	c->border.color  = COLOR_BLUE;
-	set_border_active(c, BORDER_TOP | BORDER_RIGHT | BORDER_BOTTOM | BORDER_LEFT);
+	set_border_side(c, BORDER_TOP | BORDER_RIGHT | BORDER_BOTTOM | BORDER_LEFT, false);
 	set_border_position(c, BORDER_POSITION_OUTSIDE);
 
 	return c;
 }
 
+/* Rectangle default_rect(void) */
+/* { */
+/* 	return (Rectangle){ */
+/* 		.x      = 0, */
+/* 		.y      = 0, */
+/* 		.width  = 100, */
+/* 		.height = 100 */
+/* 	}; */
+/* } */
+
 void draw_border(Component *c)
 {
+	if (c->border.mask  == BORDER_NONE)
+		return;
 	if (c->border.mask & BORDER_TOP)
 		gfx_draw_line(VEC2(c->x, c->y), VEC2(c->x + c->width, c->y), c->border.color);
 	if (c->border.mask & BORDER_RIGHT)
@@ -41,9 +53,14 @@ void draw_border(Component *c)
 		gfx_draw_line(VEC2(c->x, c->y + c->height), VEC2(c->x, c->y), c->border.color);
 }
 
-void set_border_active(Component *c, U32 mask)
+void set_border_side(Component *c, U32 mask, bool overwrite)
 {
-	/* c->border.mask &= ~(BORDER_TOP | BORDER_RIGHT | BORDER_BOTTOM | BORDER_LEFT); */
+	if (mask == BORDER_NONE) {
+		c->border.mask &= ~(BORDER_TOP | BORDER_RIGHT | BORDER_BOTTOM | BORDER_LEFT);
+		return;
+	}
+	if (overwrite)
+		c->border.mask &= ~(BORDER_TOP | BORDER_RIGHT | BORDER_BOTTOM | BORDER_LEFT);
 	c->border.mask |= mask;
 }
 
@@ -51,36 +68,35 @@ void set_border_active(Component *c, U32 mask)
 void set_border_position(Component *c, U32 mask)
 {
 	c->border.mask &= ~(BORDER_POSITION_CENTER | BORDER_POSITION_INSIDE | BORDER_POSITION_OUTSIDE);
-	c->border.mask |= mask;
+	if (mask & BORDER_POSITION_CENTER) {
+		c->border.mask |= BORDER_POSITION_CENTER;
+		return;
+	}
+	if (mask & BORDER_POSITION_INSIDE) {
+		c->border.mask |= BORDER_POSITION_INSIDE;
+		return;
+	}
+	if (mask & BORDER_POSITION_OUTSIDE) {
+		c->border.mask |= BORDER_POSITION_OUTSIDE;
+		return;
+	}
 }
 
-bool button(int x, int y, int width, int height) {
-	static float threshold = 0;
+bool button(int x, int y, int width, int height)
+{
+	Vector2 pos = get_mouse_position();
+	bool hovered = mouse_in_rect(pos, (Rectangle){ .x = x, .y = y, .width = width, .height = height});
 	Component *c = create_component();
 	c->x = x;
 	c->y = y;
 	c->width = width;
 	c->height = height;
-	Vector2 pos = get_mouse_position();
-	c->state.is_hovered = mouse_in_rect(pos, c);
+	c->state.is_hovered = hovered;
 	c->state.is_clicked = (c->state.is_hovered && is_mouse_btn_press(SRN_BTN_LEFT));
-	if (is_mouse_btn_down(SRN_BTN_LEFT)) {
-		threshold += 25 * get_frame_time();
-		if (threshold >= 10)
-			c->state.is_dragged = true;
-	}
-	if (c->state.is_dragged && is_mouse_btn_released(SRN_BTN_LEFT))
-		threshold = 0, c->state.is_dragged = false;
-	if (c->state.is_dragged) c->border.color = COLOR_GREEN, c->x = pos.x, c->y = pos.y;
+	if (c->state.is_hovered) 
+		c->border.color = COLOR_RED, c->height += 199, c->width += 199;
 	draw_border(c);
 	return c->state.is_clicked;
 }
 
-bool mouse_in_rect(Vector2 pos, Component *rect)
-{
-	return pos.x >= rect->x && 
-	       pos.x <= rect->x + rect->width && 
-	       pos.y >= rect->y && 
-	       pos.y <= rect->y + rect->height;
-}
 
