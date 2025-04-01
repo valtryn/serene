@@ -1,5 +1,5 @@
-#include "keycode.h"
 #define _GNU_SOURCE
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <sys/shm.h>
@@ -21,11 +21,14 @@
 SRN_Context CONTEXT = {0};
 BackendContext backend = {0};
 
+// TODO: maybe make an init_window function that uses its own
+//	 arena allocator rather than via a parameter
+//	 if implemented add an api to set the arena memory size
 int init_window(string title, int width, int height, Allocator *alloc)
 {
 	CONTEXT.allocator = alloc;
 	Allocator *frame_arena_alloc = alloc->alloc(sizeof(Allocator), alloc->ctx);
-	arena_allocator_init(frame_arena_alloc, megabytes(1));
+	arena_allocator_init(frame_arena_alloc, megabytes(2));
 	CONTEXT.frame_allocator = frame_arena_alloc;
 
 	CONTEXT.Window.title  = title;
@@ -35,10 +38,6 @@ int init_window(string title, int width, int height, Allocator *alloc)
 	CONTEXT.Window.y      = 0;
 
 	CONTEXT.Surface.format = PIXELFORMAT_RGBA32;
-	// NOTE: assume the pixel format is RGBA32 for now
-	/* if (CONTEXT.Surface.format == PIXELFORMAT_RGBA32) { */
-	/* 	CONTEXT.Surface.pixels = alloc->alloc(sizeof(U32) * width * height, alloc->ctx); */
-	/* } */
 	CONTEXT.Surface.width  = width;
 	CONTEXT.Surface.height = height;
 	CONTEXT.Surface.pitch  = width * sizeof(U32);
@@ -49,8 +48,8 @@ int init_window(string title, int width, int height, Allocator *alloc)
 
 	memset(CONTEXT.Keyboard.curr_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.curr_key_state) * sizeof(U32));
 	memset(CONTEXT.Keyboard.prev_key_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.prev_key_state) * sizeof(U32));
-	memset(CONTEXT.Mouse.curr_mouse_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.curr_key_state) * sizeof(U8));
-	memset(CONTEXT.Mouse.prev_mouse_state, 0, ARRAY_SIZE(CONTEXT.Keyboard.prev_key_state) * sizeof(U8));
+	memset(CONTEXT.Mouse.curr_mouse_state, 0, ARRAY_SIZE(CONTEXT.Mouse.curr_mouse_state) * sizeof(U8));
+	memset(CONTEXT.Mouse.prev_mouse_state, 0, ARRAY_SIZE(CONTEXT.Mouse.prev_mouse_state) * sizeof(U8));
 
 	CONTEXT.Mouse.prev_pos = VEC2(0, 0);
 	CONTEXT.Mouse.curr_pos = VEC2(0, 0);
@@ -115,6 +114,7 @@ int init_window(string title, int width, int height, Allocator *alloc)
 	CONTEXT.Surface.pixels = si->shmaddr = image->data = shmat(si->shmid, 0, 0);
 	si->readOnly = False;
 	XShmAttach(display, si);
+	printf("wa: %d\n", wa.depth);
 	backend.ctx = (X11_Context){
 		.display      = display,
 		.window       = window,
@@ -122,8 +122,18 @@ int init_window(string title, int width, int height, Allocator *alloc)
 		.graphical_ctx= graphical_ctx,
 		.back_buffer  = back_buffer,
 	};
-	// TODO: handle errors
 	return 0;
+}
+
+void deinit_window(void)
+{
+	allocator_deinit(CONTEXT.frame_allocator); // free the frame_buffer_allocator
+	// free x11 objects
+	XdbeDeallocateBackBufferName(backend.ctx.display, backend.ctx.back_buffer);
+	XFreeGC(backend.ctx.display, backend.ctx.graphical_ctx);
+	XDestroyImage(backend.ctx.image);
+	XDestroyWindow(backend.ctx.display, backend.ctx.window);
+	XCloseDisplay(backend.ctx.display);
 }
 
 int draw_surface(void)
@@ -213,12 +223,12 @@ int should_close(void)
 			}
 			case KeyPress: {
 				// TODO: handle modifiers
-				/* KeySym keysym = XLookupKeysym(&x11_event.xkey, 0); */
-				/* if (keysym <= MAX_KEY_STATE) */
-				/* 	CONTEXT.Keyboard.curr_key_state[keysym] = keysym; */
-				/* if (keysym == XK_q) { */
-				/* 	ret = 1; */
-				/* } */
+				KeySym keysym = XLookupKeysym(&x11_event.xkey, 0);
+				if (keysym <= MAX_KEY_STATE)
+					CONTEXT.Keyboard.curr_key_state[keysym] = keysym;
+				if (keysym == XK_q) {
+					ret = 1;
+				}
 				break;
 			}
 			case KeyRelease:
@@ -227,6 +237,8 @@ int should_close(void)
 				break;
 		}
 	}
+	// NOTE: strange place to deinit frame_allocator because order of 
+	// operation matters between deinit_window() and allocator_deinit(&arena);
 	return ret;
 }
 
@@ -278,6 +290,15 @@ bool is_mouse_btn_up(SRN_MOUSE key)
 {
 	return (CONTEXT.Mouse.curr_mouse_state[key] == RELEASE);
 }
+
+bool mouse_in_rect(Vector2 pos, Rectangle rect)
+{
+	return pos.x >= rect.x && 
+	       pos.x <= rect.x + rect.width && 
+	       pos.y >= rect.y && 
+	       pos.y <= rect.y + rect.height;
+}
+
 
 float lerp(float v0, float v1, float t)
 {

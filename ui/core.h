@@ -128,6 +128,7 @@ extern SRN_Context CONTEXT;
 
 // WINDOW
 int  init_window(string title, int width, int height, Allocator *alloc);
+void deinit_window(void);
 void BEGIN(void);
 void END(void);
 int  should_close(void);
@@ -143,6 +144,7 @@ bool    is_mouse_btn_released(SRN_MOUSE key);
 bool    is_mouse_btn_down(SRN_MOUSE key);
 bool    is_mouse_btn_up(SRN_MOUSE key);
 float   lerp(float v0, float v1, float t);
+bool    mouse_in_rect(Vector2 pos, Rectangle rect);
 
 // TIMING FUNCTIONS
 void time_delay(uint64_t ns);
