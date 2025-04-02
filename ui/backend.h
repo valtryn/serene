@@ -8,11 +8,10 @@
 #include <X11/extensions/XShm.h>
 
 typedef struct {
-	Display       *display;
-	Window         window;
-	XImage        *image;
-	GC             graphical_ctx;
-	XdbeBackBuffer back_buffer;
+	Display *display;
+	Window   window;
+	XImage  *image;
+	GC       graphical_ctx;
 } X11_Context;
 
 typedef struct {

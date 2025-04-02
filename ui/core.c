@@ -21,9 +21,6 @@
 SRN_Context CONTEXT = {0};
 BackendContext backend = {0};
 
-// TODO: maybe make an init_window function that uses its own
-//	 arena allocator rather than via a parameter
-//	 if implemented add an api to set the arena memory size
 int init_window(string title, int width, int height, Allocator *alloc)
 {
 	CONTEXT.allocator = alloc;
@@ -62,18 +59,15 @@ int init_window(string title, int width, int height, Allocator *alloc)
 	// NOTE: assume the backend is x11 for now
 	// Create Window
 
-	Display *display           = NULL;
-	Window window              = 0;
-	Window root_window	   = 0;
-	XImage *image              = NULL;
-	GC graphical_ctx           = 0;
-	XdbeBackBuffer back_buffer = 0;
+	Display *display = NULL;
+	Window window    = 0;
+	XImage *image    = NULL;
+	GC graphical_ctx = 0;
 
 	display = XOpenDisplay(NULL);
-	root_window = XDefaultRootWindow(display);
 	window = XCreateSimpleWindow(
 			display,
-			root_window,
+			XDefaultRootWindow(display),
 			0, 0,
 			width, height,
 			1,
@@ -96,7 +90,6 @@ int init_window(string title, int width, int height, Allocator *alloc)
 
 	// Create Surface
 	graphical_ctx = XCreateGC(display, window, 0, NULL);
-	back_buffer = XdbeAllocateBackBufferName(display,  window, 0);
 	XWindowAttributes wa = {0};
 	XGetWindowAttributes(display, window, &wa);
 	XShmSegmentInfo *si = alloc->alloc(sizeof(XShmSegmentInfo), alloc->ctx);
@@ -119,7 +112,6 @@ int init_window(string title, int width, int height, Allocator *alloc)
 		.window       = window,
 		.image        = image,
 		.graphical_ctx= graphical_ctx,
-		.back_buffer  = back_buffer,
 	};
 	return 0;
 }
@@ -128,35 +120,29 @@ void deinit_window(void)
 {
 	allocator_deinit(CONTEXT.frame_allocator); // free the frame_buffer_allocator
 	// free x11 objects
-	XdbeDeallocateBackBufferName(backend.ctx.display, backend.ctx.back_buffer);
 	XFreeGC(backend.ctx.display, backend.ctx.graphical_ctx);
 	XDestroyImage(backend.ctx.image);
 	XDestroyWindow(backend.ctx.display, backend.ctx.window);
 	XCloseDisplay(backend.ctx.display);
 }
 
+// TODO: handle errors
 int draw_surface(void)
 {
 	GC gc                      = backend.ctx.graphical_ctx;
 	XImage *image              = backend.ctx.image;
 	Window window              = backend.ctx.window;
 	Display *display           = backend.ctx.display;
-	XdbeBackBuffer back_buffer = backend.ctx.back_buffer;
 
 	XShmPutImage(display,
-			back_buffer,
+			window,
 			gc,
 			image,
 			0, 0,
 			0, 0,
 			CONTEXT.Surface.width, CONTEXT.Surface.height,
 			False);
-
-	XdbeSwapInfo swap_info = {0};
-	swap_info.swap_window = window;
-	swap_info.swap_action = 0;
-	XdbeSwapBuffers(display, &swap_info, 1);
-	// TODO: handle errors
+	XSync(display, 0);
 	return 0;
 }
 
@@ -224,10 +210,9 @@ int should_close(void)
 			case ButtonPress:
 				CONTEXT.Mouse.curr_state[x11_event.xbutton.button] = PRESS;
 				break;
-			case ButtonRelease: {
+			case ButtonRelease:
 				CONTEXT.Mouse.curr_state[x11_event.xbutton.button] = RELEASE;
 				break;
-			}
 			case KeyPress: {
 				// TODO: handle modifiers
 				KeySym keysym = XLookupKeysym(&x11_event.xkey, 0);
